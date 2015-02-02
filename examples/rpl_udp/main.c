@@ -22,35 +22,87 @@
 
 #include "net_if.h"
 #include "posix_io.h"
-#include "shell.h"
-#include "shell_commands.h"
 #include "board_uart0.h"
 #include "udp.h"
+#include "periph_conf.h"
+#include "periph/i2c.h"
+#include "HTS221.h"
+#include "SI7020.h"
+#include "crypto/aes.h"
 
 #include "rpl_udp.h"
 
-const shell_command_t shell_commands[] = {
-    {"init", "Initialize network", rpl_udp_init},
-    {"set", "Set ID", rpl_udp_set_id},
-    {"dodag", "Shows the dodag", rpl_udp_dodag},
-    {"server", "Starts a UDP server", udp_server},
-    {"send", "Send a UDP datagram", udp_send},
-    {"ign", "Ignore a node", rpl_udp_ignore},
-    {NULL, NULL, NULL}
-};
+#define FLOAT_PRECISION 1000
+#define ADDRESS_IPV6_BOARD 4
+#define ADDRESS_ROOM 4
+
+aes_context_t aesContext;
+
+void _alarm_handler(void *arg)
+{
+    (void) arg;
+    float temp_SI7020, hum_SI7020; //, temp_HTS221, hum_HTS221;
+    char msg[30];
+    char msgEncrypted[30];
+
+    SI7020_get_temperature(&temp_SI7020);
+    SI7020_get_humidity(&hum_SI7020);
+//    HTS221_get_humidity(&hum_HTS221);
+//    HTS221_get_temperature(&temp_HTS221);
+    sprintf(msg,"%d|%d,%d|%d,%d|%d,%d|%d,%d",
+                ADDRESS_ROOM,
+                (int)temp_SI7020,(int)((temp_SI7020-(int)temp_SI7020)*FLOAT_PRECISION),
+                (int)hum_SI7020,(int)((hum_SI7020-(int)hum_SI7020)*FLOAT_PRECISION),
+                (int)1,(int)1,
+                (int)1,(int)1);
+
+    /* A configurer selon la carte */
+    /*Pour les noeuds: */
+    aes_encrypt(&aesContext,msg,msgEncrypted);
+    printf("%s\n",msg);
+    printf("%s\n",msgEncrypted);
+    udp_send(3,msgEncrypted);
+    /*Pour les carte connectées au pc: */
+}
+
+
+void udp_rpl_init(void){
+	posix_open(uart0_handler_pid, 0);
+    net_if_set_src_address_mode(0, NET_IF_TRANS_ADDR_M_SHORT);
+    id = net_if_get_hardware_address(0);
+
+    //initialisation du rpl et du udp
+    rpl_udp_set_id(ADDRESS_IPV6_BOARD);
+    rpl_udp_init();
+    udp_server();
+}
+
 
 int main(void)
 {
     puts("RPL router v"APP_VERSION);
 
-    /* start shell */
-    posix_open(uart0_handler_pid, 0);
-    net_if_set_src_address_mode(0, NET_IF_TRANS_ADDR_M_SHORT);
-    id = net_if_get_hardware_address(0);
+    int value = 0;
 
-    shell_t shell;
-    shell_init(&shell, shell_commands, UART0_BUFSIZE, uart0_readc, uart0_putc);
+    udp_rpl_init();
+	char key[5] = "xsoen";
+	aes_init(&aesContext,AES_BLOCK_SIZE,5,key);
+    /* start I2C */
+    value = i2c_init_master(I2C_0,I2C_SPEED_FAST);
+    /* INIT HTS221 Sensor */
+    //HTS221_init(HTS221_ODR_ONE_SHOT);
 
-    shell_run(&shell);
+    thread_print_all();
+
+    float c;
+    while(1){
+    	c=0;
+    	_alarm_handler(NULL);
+    	for(double i=0;i<25000;i++)
+    	{
+    		c=c+0.000001;
+    	}
+    	printf("%f",c);
+    }
     return 0;
 }
