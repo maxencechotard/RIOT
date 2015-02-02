@@ -25,9 +25,6 @@
 #include "board_uart0.h"
 #include "udp.h"
 #include "periph_conf.h"
-#include "periph/i2c.h"
-#include "HTS221.h"
-#include "SI7020.h"
 #include "crypto/aes.h"
 
 #include "rpl_udp.h"
@@ -41,20 +38,8 @@ aes_context_t aesContext;
 void _alarm_handler(void *arg)
 {
     (void) arg;
-    float temp_SI7020, hum_SI7020; //, temp_HTS221, hum_HTS221;
-    char msg[30];
+    char msg[30]"hello";
     char msgEncrypted[30];
-
-    SI7020_get_temperature(&temp_SI7020);
-    SI7020_get_humidity(&hum_SI7020);
-//    HTS221_get_humidity(&hum_HTS221);
-//    HTS221_get_temperature(&temp_HTS221);
-    sprintf(msg,"%d|%d,%d|%d,%d|%d,%d|%d,%d",
-                ADDRESS_ROOM,
-                (int)temp_SI7020,(int)((temp_SI7020-(int)temp_SI7020)*FLOAT_PRECISION),
-                (int)hum_SI7020,(int)((hum_SI7020-(int)hum_SI7020)*FLOAT_PRECISION),
-                (int)1,(int)1,
-                (int)1,(int)1);
 
     /* A configurer selon la carte */
     /*Pour les noeuds: */
@@ -87,12 +72,8 @@ int main(void)
     udp_rpl_init();
 	char key[5] = "xsoen";
 	aes_init(&aesContext,AES_BLOCK_SIZE,5,key);
-    /* start I2C */
-    value = i2c_init_master(I2C_0,I2C_SPEED_FAST);
-    /* INIT HTS221 Sensor */
-    //HTS221_init(HTS221_ODR_ONE_SHOT);
-
-    thread_print_all();
+ 
+	thread_print_all();
 
     float c;
     while(1){
