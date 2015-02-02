@@ -35,7 +35,6 @@
 
 #define TRANSCEIVER TRANSCEIVER_DEFAULT
 
-char monitor_stack_buffer[MONITOR_STACK_SIZE];
 radio_address_t id;
 
 uint8_t is_root = 0;
