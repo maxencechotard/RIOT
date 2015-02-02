@@ -39,7 +39,7 @@
 char udp_server_stack_buffer[KERNEL_CONF_STACKSIZE_MAIN];
 char addr_str[IPV6_MAX_ADDR_STR_LEN];
 
-extern aes_context_t aesContext;
+extern cipher_context_t cipherContext;
 
 static void *init_udp_server(void *);
 
@@ -84,7 +84,7 @@ static void *init_udp_server(void *arg)
             printf("ERROR: recsize < 0!\n");
         }
         char msgDecrypted[35];
-        aes_decrypt(&aesContext,buffer_main,msgDecrypted);
+        aes_decrypt(cipherContext,(uint8_t*)buffer_main,(uint8_t*)msgDecrypted);
         printf("UDP packet received, payload: %s\n", msgDecrypted);
     }
 
