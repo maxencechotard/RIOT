@@ -26,24 +26,23 @@
 #include "udp.h"
 #include "periph_conf.h"
 #include "crypto/aes.h"
-
+#include "ps.h"
 #include "rpl_udp.h"
 
 #define FLOAT_PRECISION 1000
 #define ADDRESS_IPV6_BOARD 4
 #define ADDRESS_ROOM 4
 
-aes_context_t aesContext;
+cipher_context_t cipherContext;
 
-void _alarm_handler(void *arg)
+void _alarm_handler()
 {
-    (void) arg;
-    char msg[30]"hello";
+    char msg[30]="hello";
     char msgEncrypted[30];
 
     /* A configurer selon la carte */
     /*Pour les noeuds: */
-    aes_encrypt(&aesContext,msg,msgEncrypted);
+    aes_encrypt(&cipherContext,(uint8_t*)msg,(uint8_t*)msgEncrypted);
     printf("%s\n",msg);
     printf("%s\n",msgEncrypted);
     udp_send(3,msgEncrypted);
@@ -52,7 +51,7 @@ void _alarm_handler(void *arg)
 
 
 void udp_rpl_init(void){
-	posix_open(uart0_handler_pid, 0);
+    posix_open(uart0_handler_pid, 0);
     net_if_set_src_address_mode(0, NET_IF_TRANS_ADDR_M_SHORT);
     id = net_if_get_hardware_address(0);
 
@@ -70,20 +69,15 @@ int main(void)
     int value = 0;
 
     udp_rpl_init();
-	char key[5] = "xsoen";
-	aes_init(&aesContext,AES_BLOCK_SIZE,5,key);
+    char key[5] = "xsoen";
+    aes_init(&cipherContext,AES_BLOCK_SIZE, 5,(uint8_t*)key);
+    thread_print_all();
+    
+    timex_t sleep = timex_set(2, 0);
  
-	thread_print_all();
-
-    float c;
     while(1){
-    	c=0;
-    	_alarm_handler(NULL);
-    	for(double i=0;i<25000;i++)
-    	{
-    		c=c+0.000001;
-    	}
-    	printf("%f",c);
+    	vtimer_sleep(sleep);
+    	_alarm_handler();
     }
     return 0;
 }
