@@ -45,7 +45,6 @@ USEMODULE += uart0
 USEMODULE += ps
 USEMODULE += vtimer
 USEMODULE += defaulttransceiver
-USEMODULE += rpl
 USEMODULE += udp
 USEMODULE += crypto
 
